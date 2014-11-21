@@ -3,7 +3,7 @@
     "name": "swift",
     "proxy_pkg": "swift-proxy",
     "proxy_service": "swift-proxy",
-    "proxy_confs": [],
+    "proxy_confs": ['proxy.conf', 'swift.conf'],
     "client_pkg": "python-swiftclient",
     "store_pkgs": ['swift', 'swift-account', 'swift-container', 'swift-object', 'rsync'],
     "store_services": ['swift-account', 'swift-container', 'swift-object', 'swift-object-replicator',
@@ -15,9 +15,17 @@
   },
   "RedHat":{
     "name": "swift",
-    "pkg": "",
-    "service": [''],
+    "proxy_pkg": "swift-proxy",
+    "proxy_service": "swift-proxy",
+    "proxy_confs": ['proxy.conf', 'swift.conf'],
     "client_pkg": "python-swiftclient",
+    "store_pkgs": ['swift', 'swift-account', 'swift-container', 'swift-object', 'rsync'],
+    "store_services": ['swift-account', 'swift-container', 'swift-object', 'swift-object-replicator',
+                        'swift-object-updater', 'swift-object-auditor',
+                        'swift-account-reaper', 'swift-account-auditor'],
+    "store_confs": ["account-server.conf", "container-server.conf", "object-server.conf", "swift.conf"],
+    "rsync_pkg": "rsync",
+    "rsync_service": "rsync",
   },
   "default":{
     "name": "swift",
@@ -26,9 +34,9 @@
     "client_pkg": "python-glanceclient",
     "store_pkgs": ['swift', 'swift-account', 'swift-container', 'swift-object', 'rsync'],
     "store_services": ['swift-account', 'swift-container', 'swift-object', 'swift-object-replicator',
-                        'swift-object-updater', 'swift-object-auditor', 'swift-container-replicator',
-                        'swift-container-updater', 'swift-container-auditor', 'swift-account-replicator',
+                        'swift-object-updater', 'swift-object-auditor',
                         'swift-account-reaper', 'swift-account-auditor'],
+    "store_confs": ["account-server.conf", "container-server.conf", "object-server.conf", "swift.conf"],
   }
   },merge=salt["pillar.get"]("swift:lookup")) %}
 
