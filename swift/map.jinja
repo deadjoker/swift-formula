@@ -1,0 +1,154 @@
+{% set swift=salt["grains.filter_by"]({
+  "Debian":{
+    "name": "swift",
+    "proxy_pkg": "swift-proxy",
+    "proxy_service": "swift-proxy",
+    "proxy_confs": [],
+    "client_pkg": "python-swiftclient",
+    "store_pkgs": ['swift', 'swift-account', 'swift-container', 'swift-object', 'rsync'],
+    "store_services": ['swift-account', 'swift-container', 'swift-object', 'swift-object-replicator',
+                        'swift-object-updater', 'swift-object-auditor',
+                        'swift-account-reaper', 'swift-account-auditor'],
+    "store_confs": ["account-server.conf", "container-server.conf", "object-server.conf", "swift.conf"],
+    "rsync_pkg": "rsync",
+    "rsync_service": "rsync",
+  },
+  "RedHat":{
+    "name": "swift",
+    "pkg": "",
+    "service": [''],
+    "client_pkg": "python-swiftclient",
+  },
+  "default":{
+    "name": "swift",
+    "proxy_pkg": "swift-proxy",
+    "proxy_service": "proxy-server",
+    "client_pkg": "python-glanceclient",
+    "store_pkgs": ['swift', 'swift-account', 'swift-container', 'swift-object', 'rsync'],
+    "store_services": ['swift-account', 'swift-container', 'swift-object', 'swift-object-replicator',
+                        'swift-object-updater', 'swift-object-auditor', 'swift-container-replicator',
+                        'swift-container-updater', 'swift-container-auditor', 'swift-account-replicator',
+                        'swift-account-reaper', 'swift-account-auditor'],
+  }
+  },merge=salt["pillar.get"]("swift:lookup")) %}
+
+# Set default swift.conf
+{%- set swift_config = {
+  "swift-hash": {
+    "swift_hash_path_suffix": salt["pillar.get"]("swift:conf:hash_suffix", 'infohold'),
+    "swift_hash_path_prefix": salt["pillar.get"]("swift:conf:hash_prefix", 'infohold'),
+  },
+  "storage-policy:0": {
+    "name": "Policy-0",
+    "default": "yes",
+  }
+} %}
+
+# Set default swift proxy-server
+{%- set swift_proxy_config = {
+  "DEFAULT": {
+    "bind_host": "0.0.0.0",
+    "bind_port": "8080",
+    "swift_dir": "/etc/swift",
+    "user": "swift",
+  },
+  "filter:authtoken": {
+    "paste.filter_factory": "keystonemiddleware.auth_token:filter_factory",
+    "auth_uri": "http://controller:5000/v2.0",
+    "auth_host": salt["pillar.get"]("swift:keystone:host"),
+    "auth_port": "35357",
+    "auth_protocol": "http",
+    "admin_tenant_name": "service",
+    "admin_user": "swift",
+    "admin_password": salt["pillar.get"]("swift:keystone:password"),
+    "delay_auth_decision": "1",
+    "cache": "swift.cache",
+  },
+  "filter:cache": {
+    "use": "egg:swift#memcache",
+    "memcache_servers": salt["pillar.get"]("swift:memcache:hosts", 'localhost:11211'), 
+  },
+} %}
+
+# Set default swift account-server
+{%- set swift_account_config = {
+  "DEFAULT": {
+    "bind_host": "0.0.0.0",
+    "bind_port": "6002",
+    "user": "swift",
+    "swift_dir": "/etc/swift",
+    "devices": salt["pillar.get"]("swift:config:devices", "/srv/node"),
+  },
+  "filter:recon": {
+    "use": "egg:swift#recon",
+    "recon_cache_path": salt["pillar.get"]("swift:config:cache_dir", "/var/cache/swift"), 
+  },
+} %}
+
+# Set defualt swift container-server
+{%- set swift_container_config = {
+  "DEFAULT": {
+    "bind_host": "0.0.0.0",
+    "bind_port": "6001",
+    "user": "swift",
+    "swift_dir": "/etc/swift",
+    "devices": salt["pillar.get"]("swift:config:devices", "/srv/node"),
+  },
+  "filter:recon": {
+    "use": "egg:swift#recon",
+    "recon_cache_path": salt["pillar.get"]("swift:config:cache_dir", "/var/cache/swift"), 
+  },
+} %}
+
+# Set default swift object-server
+{%- set swift_object_config = {
+  "DEFAULT": {
+    "bind_host": "0.0.0.0",
+    "bind_port": "6000",
+    "user": "swift",
+    "swift_dir": "/etc/swift",
+    "devices": salt["pillar.get"]("swift:config:devices", "/srv/node"),
+  },
+  "filter:recon": {
+    "use": "egg:swift#recon",
+    "recon_cache_path": salt["pillar.get"]("swift:config:cache_dir", "/var/cache/swift"), 
+  },
+} %}
+
+# Set default rsync config
+{%- set rsync_config = {
+  "DEFAULT": {
+    "uid": "swift",
+    "gid": "swift",
+    "log_file": "/var/log/rsyncd.log",
+    "pid_file": "/var/run/rsyncd.log",
+    "address": salt['network.ipaddrs'](interface="eth0", cidr="172.16.0.0/24")|first,
+  },
+  "account": {
+    "max_connection": "2",
+    "path": salt["pillar.get"]("swift:config:devices", "/srv/node"),
+    "read_only": "false",
+    "lock_file": "/var/lock/account.lock",
+  },
+  "container": {
+    "max_connection": "2",
+    "path": salt["pillar.get"]("swift:config:devices", "/srv/node"),
+    "read_only": "false",
+    "lock_file": "/var/lock/container.lock",
+  },
+  "object": {
+    "max_connection": "2",
+    "path": salt["pillar.get"]("swift:config:devices", "/srv/node"),
+    "read_only": "false",
+    "lock_file": "/var/lock/object.lock",
+  },
+} %}
+
+# Set swift account ring
+{%- set swift_account_ring = {
+  "name": salt["pillar.get"]("swift:ring:account:file_name", "account.ring"),
+  "power": salt["pillar.get"]("swift:ring:account:part_power", "10"),
+  "replicas": salt["pillar.get"]("swift:ring:account:replicas", "3"),
+  "min_part_hours": salt["pillar.get"]("swift:account:min_hour", "1"),
+} %}
+

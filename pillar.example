@@ -1,0 +1,35 @@
+# Used by keystone module
+keystone.token: ADMIN_TOKEN
+keystone.endpoint: http://172.16.0.8:35357/v2.0
+
+swift:
+  public_ip: 192.168.0.217
+  internal_ip: 172.16.0.8
+  admin_ip: 172.16.0.8
+  keystone:
+    host: 172.16.0.8
+    password: 'pass'
+    email: '123@123.com'
+  memcache:
+    hosts: localhost:11211
+  config:
+    devices: '/srv/node'
+    cache_dir: '/var/cache/swift'
+    hash_suffix: 'infohold'
+    hash_prefix: 'infhold'
+    store_params:
+      '172.16.0.217': 
+        'port': '6002'
+        'devices': 
+          '/dev/sdb': '100'
+          '/dev/sdc': '100'
+        'rigion': '1'
+        'zone': '1'
+      '172.16.0.221': 
+        'port': '6002'
+        'devices': 
+          '/dev/sdb': '100'
+          '/dev/sdc': '100'
+        'rigion': '1'
+        'zone': '1'
+
